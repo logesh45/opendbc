@@ -6,7 +6,7 @@ from opendbc.can.dbc import DBC, Signal, SignalType
 
 class CANPacker:
   def __init__(self, dbc_name: str):
-    self.dbc = DBC(dbc_name)
+    self.dbc = DBC.load(dbc_name)
     self.counters: dict[int, int] = {}
 
   def pack(self, address: int, values: dict[str, float]) -> bytearray:

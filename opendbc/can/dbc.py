@@ -82,7 +82,19 @@ class DBC:
 
   _CACHE: ClassVar[dict[str, "DBC"]] = {}
 
-  def __new__(cls, name: str):
+  @classmethod
+  def load(cls, name: str) -> "DBC":
+    """Load or retrieve cached DBC file.
+
+    Args:
+      name: DBC file name (with or without .dbc extension) or absolute path
+
+    Returns:
+      Cached DBC instance if already loaded, otherwise loads and caches it
+
+    Raises:
+      FileNotFoundError: If DBC file cannot be found
+    """
     dbc_path = name
     if not os.path.exists(dbc_path):
       candidate = os.path.join(DBC_PATH, name + ".dbc")
@@ -92,28 +104,22 @@ class DBC:
         raise FileNotFoundError(f"DBC file not found: {name}")
     dbc_path = os.path.abspath(dbc_path)
 
-    cached = cls._CACHE.get(dbc_path)
-    if cached is not None:
-      return cached
+    # Return cached instance if available
+    if dbc_path in cls._CACHE:
+      return cls._CACHE[dbc_path]
 
-    self = super().__new__(cls)
-    self._dbc_path = dbc_path
-    return self
+    # Create and cache new instance
+    instance = object.__new__(cls)
+    instance.__init__(dbc_path)
+    return instance
 
-  def __init__(self, name: str):
-    if getattr(self, "_initialized", False):
-      return
+  def __init__(self, dbc_path: str):
+    """Initialize DBC instance by parsing the file.
 
-    dbc_path = getattr(self, "_dbc_path", None)
-    if dbc_path is None:
-      dbc_path = name
-      if not os.path.exists(dbc_path):
-        dbc_path = os.path.join(DBC_PATH, name + ".dbc")
-      dbc_path = os.path.abspath(dbc_path)
-      self._dbc_path = dbc_path
-
+    This should be called via the load() class method to benefit from caching.
+    """
+    dbc_path = os.path.abspath(dbc_path)
     self._parse(dbc_path)
-    self._initialized = True
     type(self)._CACHE[dbc_path] = self
 
   def _parse(self, path: str):
